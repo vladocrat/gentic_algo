@@ -144,6 +144,11 @@ std::optional<Population::CrossoverResult> Population::crossover(const Crossover
             return std::nullopt;
 
         return linearCrossover(parent1, parent2);
+    case CrossoverType::TwoPoint:
+        if (m_type != IndividualType::GrayCode)
+            return std::nullopt;
+
+        return twoPointCrossover(parent1, parent2);
     }
 
     return std::nullopt;
@@ -216,6 +221,45 @@ Population::CrossoverResult Population::linearCrossover(const Individual& parent
 
     child1.setChromosomes(child1Chromosomes);
     child2.setChromosomes(child2Chromosomes);
+
+    return std::make_pair(child1, child2);
+}
+
+Population::CrossoverResult Population::twoPointCrossover(const Individual& parent1, const Individual& parent2)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(1, 6);
+
+    auto point1 = dist(gen);
+    auto point2 = dist(gen);
+
+    if (point1 > point2) {
+        std::swap(point1, point2);
+    }
+
+    std::bitset<8> child1Code, child2Code;
+
+    const auto& parent1Vec = std::get<Individual::GrayCode>(parent1.chromosomes());
+    const auto& parent2Vec = std::get<Individual::GrayCode>(parent2.chromosomes());
+
+    for (size_t j = 0; j < parent1Vec.size(); j++) {
+        for (size_t i = 0; i < 8; ++i) {
+            if (i < point1 || i >= point2) {
+                child1Code.set(i, parent1Vec[j].test(i));
+                child2Code.set(i, parent2Vec[j].test(i));
+            } else {
+                child1Code.set(i, parent2Vec[j].test(i));
+                child2Code.set(i, parent1Vec[j].test(i));
+            }
+        }
+    }
+
+    Individual child1;
+    child1.append(child1Code);
+
+    Individual child2;
+    child2.append(child2Code);
 
     return std::make_pair(child1, child2);
 }

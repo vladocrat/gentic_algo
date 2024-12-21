@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <algorithm>
+#include <iterator>
 
 #include "individual.h"
 
@@ -33,10 +35,11 @@ public:
     {
         None = 0,
         Discrete,
-        Linear
+        Linear,
+        TwoPoint
     };
 
-    Population(const uint32_t size, const uint8_t dimenions = 1, const IndividualType individualType = IndividualType::None,
+    Population(const uint32_t size = 10, const uint8_t dimenions = 1, const IndividualType individualType = IndividualType::None,
                const Bounds& bounds = std::make_pair(-1.0, 1.0));
 
     //! Selections
@@ -50,7 +53,38 @@ public:
     void updateFitness(Func f)
     {        
         for (auto& ind : m_individuals) {
-            const auto fitness = f(std::get<Individual::Gene>(ind.chromosomes()));
+            const auto fitness = [f, &ind]() {
+                const auto arg = ind.chromosomes();
+
+                if (std::holds_alternative<Individual::Gene>(arg)) {
+                    return f(std::get<Individual::Gene>(arg));
+                } else if (std::holds_alternative<Individual::GrayCode>(arg)){
+                    const auto& argVec = std::get<Individual::GrayCode>(arg);
+
+                    const auto intValue = [](const std::bitset<8> argVal) -> double {
+                        std::bitset<8> binary;
+                        binary[7] = argVal[7];
+
+                        for (int i = 6; i >= 0; --i) {
+                            binary[i] = binary[i + 1] ^ argVal[i];
+                        }
+
+                        return static_cast<double>(binary.to_ulong());
+                    };
+
+                    std::vector<double> functionInput;
+                    functionInput.resize(argVec.size());
+
+                    std::ranges::transform(argVec, std::back_inserter(functionInput), [&intValue](const auto value) {
+                        return intValue(value);
+                    });
+
+                    return f(functionInput);
+                }
+
+                return 0.0;
+            }();
+
             ind.setFitness(fitness);
         }
     }
@@ -59,6 +93,7 @@ public:
     std::optional<CrossoverResult> crossover(const CrossoverType type, const Individual& parent1, const Individual& parent2);
     CrossoverResult discreteCrossover(const Individual& parent1, const Individual& parent2);
     CrossoverResult linearCrossover(const Individual& parent1, const Individual& parent2);
+    CrossoverResult twoPointCrossover(const Individual& parent1, const Individual& parent2);
 
     size_t size() const;
     void setIndividuals(const Individuals& inds);

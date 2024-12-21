@@ -2,12 +2,24 @@
 
 #include <random>
 #include <sstream>
+#include <iostream>
 
 
-Individual::Individual(const uint8_t dimentions)
+Individual::Individual(const uint8_t dimentions, const Type type)
+    : m_type{type}
 {
-    if (std::holds_alternative<Gene>(m_chromoses)) {
-        std::get<Gene>(m_chromoses).reserve(dimentions);
+    std::visit([&](auto&& chromosomes) {
+        chromosomes.reserve(dimentions);
+    }, m_chromoses);
+
+    switch (type)  {
+
+    case Type::None:
+    case Type::Discrete:
+        m_chromoses = Gene{};
+    case Type::GrayCode:
+        m_chromoses = GrayCode{};
+        break;
     }
 }
 
@@ -39,14 +51,12 @@ Individual::Individual(Individual&& other)
 
 void Individual::append(const double val)
 {
-    if (std::holds_alternative<Gene>(m_chromoses)) {
-        std::get<Gene>(m_chromoses).push_back(val);
-    }
+    std::get<Gene>(m_chromoses).push_back(val);
 }
 
 void Individual::append(const std::bitset<8> bitset)
 {
-
+    std::get<GrayCode>(m_chromoses).push_back(bitset);
 }
 
 void Individual::mutate(const double probability, const Bounds& bounds)
@@ -77,8 +87,6 @@ void Individual::setChromosomes(const Chromosomes& chromosomes)
     m_chromoses = std::move(chromosomes);
 }
 
-
-
 std::string Individual::toString() const
 {
     std::stringstream ss;
@@ -96,6 +104,16 @@ std::string Individual::toString() const
                 ss << ", ";
             }
         }
+    } else if (std::holds_alternative<GrayCode>(m_chromoses)) {
+        const auto& grayCode = std::get<GrayCode>(m_chromoses);
+
+        for (size_t i = 0; i < grayCode.size(); ++i) {
+            ss << grayCode[i].to_string();
+
+            if (i < grayCode.size() - 1) {
+                ss << ", ";
+            }
+        };
     }
 
     ss << ")";

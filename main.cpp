@@ -36,9 +36,9 @@ int main()
     settings.size = 5;
     settings.dimentions = 5;
     settings.bounds = std::make_pair(0, M_PI);
-    settings.type = Population::IndividualType::Discrete;
+    settings.type = Population::IndividualType::GrayCode;
     settings.selection = Population::SelectionType::Rank;
-    settings.crossover = Population::CrossoverType::Discrete;
+    settings.crossover = Population::CrossoverType::TwoPoint;
     settings.mutationChance = 0.05;
 
     constexpr auto target = -4.650;

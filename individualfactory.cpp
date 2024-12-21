@@ -38,7 +38,12 @@ Individual IndividualFactory::create(const Population::IndividualType individual
 
         std::cout << val << " " << std::bitset<8>(getVal(scaledValue)) << std::endl;
 
-        Individual ind;
+        Individual ind(dimentions, Individual::Type::GrayCode);
+
+        for (uint8_t i = 0; i < dimentions; i++) {
+            ind.append(std::bitset<8>(getVal(scaledValue)));
+        }
+
         return std::move(ind);
     }
     }
